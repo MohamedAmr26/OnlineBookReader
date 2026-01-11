@@ -41,6 +41,5 @@ class User{
             return user.is_admin();
         }
 };
-map<string, pair<string, bool> > User::accounts;
 // private static?
 #endif

@@ -15,16 +15,14 @@ class Inventory{
     public:
         Inventory(){
         }
-        void insert_book(const Book& new_book, const User& user){
-            if (!User::is_authorized(user)) return;
+        void insert_book(const Book& new_book){
             auto it = find(Books.begin(), Books.end(), new_book);
             if (it == Books.end())
                 Books.push_back(new_book);
             else
                 cout << "Book "<< new_book.get_book_name() << " already exists" <<endl;
         }
-        bool remove_book(const Book& new_book, const User& user){
-            if (!User::is_authorized(user)) return false;
+        bool remove_book(const Book& new_book){
             auto it = find(Books.begin(), Books.end(), new_book);
             int idx = distance(Books.begin(), it);
 
@@ -64,6 +62,12 @@ int main(){
     cin >> password;
 
     User my_user;
+    Inventory library;
+
+    vector<string> pages(1);
+    pages[0] = "lorem ipsum";
+    Book mohamed_iwl("Mohamed in Wonderland", "SussyBaka", pages);
+    library.insert_book(mohamed_iwl);
 
     while (!my_user.login(username, password)){
         cin.clear();
@@ -76,16 +80,50 @@ int main(){
     }
 
     // main menu
+    int current_choice = 0;
+    int max_choice = 0;
 
     cout << "\n\n\n---- Main menu ----\n";
     cout << "1- View Profile\n";
 
     if (my_user.is_admin()){
+        max_choice = 3;
         cout << "2- Modify Library\n";
         cout << "3- Logout\n";
     }else{
+        max_choice = 4;
         cout << "2- Book List\n";
         cout << "3- My Reading Sessions\n";
         cout << "4- Logout\n";
+    }
+
+    cin >>current_choice;
+
+    while (current_choice > max_choice || cin.fail()){
+        cin.clear();
+        cin.ignore(1000);
+        if (my_user.is_admin()){
+            max_choice = 3;
+            cout << "2- Modify Library\n";
+            cout << "3- Logout\n";
+        }else{
+            max_choice = 4;
+            cout << "2- Book List\n";
+            cout << "3- My Reading Sessions\n";
+            cout << "4- Logout\n";
+        }
+    }
+
+    if (!my_user.is_admin()){
+        switch (current_choice){
+            case 2:
+                cout << "Book List:\n";
+                int book_num = 1;
+                for (const auto& book : library.list_books()) {
+                    cout << book_num << "- " << book << endl;
+                    book_num++;
+                }
+                break;
+        }
     }
 }
