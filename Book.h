@@ -6,12 +6,17 @@ using namespace std;
 #ifndef BOOK_H
 #define BOOK_H
 class User;
-
+class Session;
 class Book{
 private:
     string name;
     string author;
     vector<string> pages;
+    int current_page=0;
+
+    void show_page(int p);
+    void ask_controllers();
+    bool is_out_borders(int pos) const;
 public:
     Book(string name, string author, const vector<string> &pages)
         : name(name), author(author), pages(pages) {}
@@ -27,6 +32,7 @@ public:
     {
         return this->get_book_name() == b.get_book_name();
     }
+    void open(Session& session);
 };
 
 #endif

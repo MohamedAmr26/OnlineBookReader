@@ -1,5 +1,7 @@
 #include <iostream>
 #include <map>
+#include <vector>
+#include "Session.h"
 
 using namespace std;
 
@@ -12,6 +14,7 @@ class User{
         string username;
         string password;
         bool isAdmin;
+        vector<Session> sessions;
         static map<string, pair<string, bool> > accounts;
     public:
         User(){
@@ -40,6 +43,17 @@ class User{
         static bool is_authorized(const User& user){
             return user.is_admin();
         }
+        int sessionsSize() const{
+            return sessions.size();
+        }
+        vector<string> list_sessions() const;
+        Session get_session(int pos)const{
+            if (pos >= 0 && pos < sessions.size()){
+                return sessions[pos];
+            }
+            throw out_of_range("Invalid Session Number");
+        }
+        Session create_session(string bookName, int page);
 };
 // private static?
 #endif

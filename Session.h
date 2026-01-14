@@ -12,8 +12,20 @@ class Session{
         int page;
         string date;
     public:
+        Session(){
+            
+        }
         Session(string book_name, int p, string d) 
             : book_name(book_name), page(p), date(d) {}
+
+        Session& operator=(const Session& other) {
+            if (this != &other) {
+                book_name = other.book_name;
+                page = other.page;
+                date = other.date;
+            }
+            return *this;
+        }
 
         string get_book_name() const {
             return book_name;

@@ -32,6 +32,11 @@ class Inventory{
             }
             return false;
         }
+        Book get_book(int pos){
+            if (pos >= 0 && pos < Books.size())
+                return Books[pos];
+            throw out_of_range("Book index out of range");
+        }
         int no_books() const{
             return Books.size();
         }
@@ -43,6 +48,65 @@ class Inventory{
             return book_names;
         }
 };
+class ConsoleUI {
+public:
+    void showWelcome() {
+        cout << "Welcome to Online Book Reader!" << endl;
+    }
+
+    void askLogin(string& username, string& password) {
+        cout << "Username: ";
+        cin >> username;
+        cout << "Password: ";
+        cin >> password;
+    }
+
+    void showInvalidLogin() {
+        cout << "Invalid username/password" << endl;
+    }
+
+    int showMainMenu(bool isAdmin) {
+        int choice;
+
+        cout << "\n---- Main Menu ----\n";
+        cout << "1- View Profile\n";
+
+        if (isAdmin) {
+            cout << "2- Modify Library\n";
+            cout << "3- Logout\n";
+        } else {
+            cout << "2- Book List\n";
+            cout << "3- My Reading Sessions\n";
+            cout << "4- Logout\n";
+        }
+
+        cin >> choice;
+        return choice;
+    }
+
+    void showBooks(const vector<string>& books) {
+        cout << "\nBook List:\n";
+        int i = 1;
+        for (const auto& book : books) {
+            cout << i++ << "- " << book << endl;
+        }
+    }
+    int askBookChoose(int size){
+        int choice;
+        cin >> choice;
+        while (choice < 1 || choice > size) {
+            cout << "Invalid choice. Please enter a number between 1 and " << size << ": ";
+            cin >> choice;
+        }
+        return choice;
+    }
+    int askBookSessions(int start){
+        int choice = start;
+        cout << start << "- " << "Create new Session\n";
+        cin >> choice;
+        return choice;
+    }
+};
 
 int main(){
     map<string, pair<string, bool> > accounts;
@@ -52,78 +116,58 @@ int main(){
 
     User::load_accounts(accounts);
 
-    string username;
-    string password;
-
-    cout << "Welcome to Online Book Reader!"<<endl;
-    cout << "Username: ";
-    cin >> username;
-    cout << "Password: ";
-    cin >> password;
-
     User my_user;
     Inventory library;
+    ConsoleUI UI;
 
     vector<string> pages(1);
     pages[0] = "lorem ipsum";
     Book mohamed_iwl("Mohamed in Wonderland", "SussyBaka", pages);
     library.insert_book(mohamed_iwl);
 
+    // login
+    string username;
+    string password;
+
+    UI.showWelcome();
+    UI.askLogin(username, password);
+
     while (!my_user.login(username, password)){
-        cin.clear();
-        cin.ignore(1000);
-        cout << "Invalid username/password"<<endl;
-        cout << "Username: ";
-        cin >> username;
-        cout << "Password: ";
-        cin >> password;
+        UI.showInvalidLogin();
+        UI.askLogin(username, password);
     }
 
     // main menu
-    int current_choice = 0;
-    int max_choice = 0;
-
-    cout << "\n\n\n---- Main menu ----\n";
-    cout << "1- View Profile\n";
-
-    if (my_user.is_admin()){
-        max_choice = 3;
-        cout << "2- Modify Library\n";
-        cout << "3- Logout\n";
-    }else{
-        max_choice = 4;
-        cout << "2- Book List\n";
-        cout << "3- My Reading Sessions\n";
-        cout << "4- Logout\n";
-    }
-
-    cin >>current_choice;
-
-    while (current_choice > max_choice || cin.fail()){
-        cin.clear();
-        cin.ignore(1000);
-        if (my_user.is_admin()){
-            max_choice = 3;
-            cout << "2- Modify Library\n";
-            cout << "3- Logout\n";
-        }else{
-            max_choice = 4;
-            cout << "2- Book List\n";
-            cout << "3- My Reading Sessions\n";
-            cout << "4- Logout\n";
-        }
-    }
+    int current_choice = UI.showMainMenu(my_user.is_admin());
 
     if (!my_user.is_admin()){
         switch (current_choice){
             case 2:
-                cout << "Book List:\n";
-                int book_num = 1;
-                for (const auto& book : library.list_books()) {
-                    cout << book_num << "- " << book << endl;
-                    book_num++;
-                }
+                vector<string> books_list = library.list_books();
+                UI.showBooks(books_list);
+
+                int bookChoice = UI.askBookChoose(books_list.size());
+
+                my_user.list_sessions();
+                int choice = UI.askBookSessions(my_user.sessionsSize()+1);
+                    
+                    try{
+                        Session book_session;
+                        Book my_book = library.get_book(bookChoice-1);
+                        
+                        if (choice == my_user.sessionsSize() + 1) {
+                            book_session = my_user.create_session(my_book.get_book_name(), 1);
+                        } else {
+                            book_session = my_user.get_session(choice-1);
+                        }
+                        
+                        my_book.open(book_session);
+                    }catch(out_of_range err){
+                        cout << err.what() <<endl;
+                        // should return asking again
+                    }
                 break;
+            
         }
     }
 }
