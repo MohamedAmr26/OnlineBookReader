@@ -46,6 +46,10 @@ class Session{
         void set_date(string d) {
             date = d;
         }
+
+        string toString() const{
+            return get_book_name() + " - " + get_date() + " - Page:" + to_string(get_page());
+        }
 };
 
 #endif

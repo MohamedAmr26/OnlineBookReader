@@ -1,12 +1,12 @@
 #include <iostream>
 #include <map>
 #include <vector>
-#include "Session.h"
 
 using namespace std;
 
 #ifndef USER_H
 #define USER_H
+class Session;
 
 // thinking of using JSON later
 class User{
@@ -15,6 +15,7 @@ class User{
         string password;
         bool isAdmin;
         vector<Session> sessions;
+        // private static?
         static map<string, pair<string, bool> > accounts;
     public:
         User(){
@@ -46,14 +47,15 @@ class User{
         int sessionsSize() const{
             return sessions.size();
         }
-        vector<string> list_sessions() const;
-        Session get_session(int pos)const{
-            if (pos >= 0 && pos < sessions.size()){
+        const vector<Session>& get_sessions() const;
+
+        void insert_session(const Session& session);
+
+        const Session& get_session(int pos) const{
+            if (pos >= 0 && pos < sessionsSize()){
                 return sessions[pos];
             }
             throw out_of_range("Invalid Session Number");
         }
-        Session create_session(string bookName, int page);
 };
-// private static?
 #endif

@@ -9,31 +9,29 @@
 
 using namespace std;
 
-class Inventory{
+class Library{
     private:
+    // change to set later
         vector<Book> Books;
     public:
-        Inventory(){
-        }
-        void insert_book(const Book& new_book){
+        Library(){}
+        bool insert_book(const Book& new_book){
             auto it = find(Books.begin(), Books.end(), new_book);
-            if (it == Books.end())
+            if (it == Books.end()){
                 Books.push_back(new_book);
-            else
-                cout << "Book "<< new_book.get_book_name() << " already exists" <<endl;
-        }
-        bool remove_book(const Book& new_book){
-            auto it = find(Books.begin(), Books.end(), new_book);
-            int idx = distance(Books.begin(), it);
-
-            if (it != Books.end()){
-                Books.erase(it);
                 return true;
             }
             return false;
         }
-        Book get_book(int pos){
-            if (pos >= 0 && pos < Books.size())
+        bool remove_book(int pos){
+            if (pos >= 0 && pos < no_books()){
+                Books.erase(Books.begin()+pos);
+                return true;
+            }
+            return false;
+        }
+        const Book& get_book(int pos) const{
+            if (pos >= 0 && pos < no_books())
                 return Books[pos];
             throw out_of_range("Book index out of range");
         }
@@ -117,7 +115,7 @@ int main(){
     User::load_accounts(accounts);
 
     User my_user;
-    Inventory library;
+    Library library;
     ConsoleUI UI;
 
     vector<string> pages(1);
