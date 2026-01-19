@@ -48,6 +48,7 @@ class User{
             return sessions.size();
         }
         const vector<Session>& get_sessions() const;
+        const vector<const Session&> get_sessions_for(string book_name) const;
 
         void insert_session(const Session& session);
 

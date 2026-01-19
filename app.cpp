@@ -98,9 +98,15 @@ public:
         }
         return choice;
     }
-    int askBookSessions(int start){
-        int choice = start;
-        cout << start << "- " << "Create new Session\n";
+    int AskBookSessions(const string& book_name, User& user) {
+        cout << "\nReading Sessions for \"" << book_name << "\":\n";
+        vector<const Session&> sessions = user.get_sessions_for(book_name);
+        for (int i = 0; i < sessions.size(); ++i) {
+            cout << (i + 1) << "- " << sessions[i].toString() << endl;
+        }
+
+        int choice;
+        cout << sessions.size()+1 << "- " << "Create new Session\n";
         cin >> choice;
         return choice;
     }
@@ -145,27 +151,23 @@ int main(){
                 UI.showBooks(books_list);
 
                 int bookChoice = UI.askBookChoose(books_list.size());
+                Book& my_book = library.get_book(bookChoice-1);
 
-                my_user.list_sessions();
-                int choice = UI.askBookSessions(my_user.sessionsSize()+1);
+                int sessionChoice = UI.AskBookSessions(my_book.get_book_name(), my_user);
                     
-                    try{
-                        Session book_session;
-                        Book my_book = library.get_book(bookChoice-1);
-                        
-                        if (choice == my_user.sessionsSize() + 1) {
-                            book_session = my_user.create_session(my_book.get_book_name(), 1);
-                        } else {
-                            book_session = my_user.get_session(choice-1);
-                        }
-                        
-                        my_book.open(book_session);
-                    }catch(out_of_range err){
-                        cout << err.what() <<endl;
-                        // should return asking again
+                try{
+                    Session& book_session;
+                    
+                    if (choice == my_user.sessionsSize() + 1) {
+                    } else {
                     }
+                    
+                    my_book.open(book_session);
+                }catch(out_of_range err){
+                    cout << err.what() <<endl;
+                    // should return asking again
+                }
                 break;
-            
         }
     }
 }
