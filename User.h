@@ -52,11 +52,10 @@ class User{
 
         void insert_session(const Session& session);
 
-        const Session& get_session(int pos) const{
-            if (pos >= 0 && pos < sessionsSize()){
-                return sessions[pos];
-            }
-            throw out_of_range("Invalid Session Number");
+        const Session& get_session(int id) const{
+            auto it = find_if(sessions.begin(), sessions.end(), 
+            [id](const Session& session) { return session.get_id() == id; });
+            return *it;
         }
 };
 #endif

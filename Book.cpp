@@ -54,41 +54,43 @@ void Book::change_book_author(string new_author)
     author = new_author;
 }
 
-void Book::show_page(int p){
-    string page = get_page(p);
-    cout << page << endl;
-    cout << "1-Previous Page" << "            " << "2-Next Page" << "            " << "3-Save&Exit\n";
-    ask_controllers();
+void Book::show_page(int p) const{
+    cout << get_page(p) << endl;
 }
-void Book::ask_controllers(){
+void Book::ask_controllers(Session& session) const{
+    cout << "1-Previous Page" << "            " << "2-Next Page" << "            " << "3-Save&Exit\n";
     int n;
     cin >> n;
+
     switch (n){
-        case 1:
-            if (!is_out_borders(current_page+1))
-                show_page(++current_page);
-            break;
         case 2:
-            if (!is_out_borders(current_page-1))
-                show_page(--current_page);
+            if (!is_out_borders(session.get_page()+1)){
+                show_page(session.set_page(session.get_page()+1));
+                ask_controllers(session);
+            }
+            break;
+        case 1:
+            if (!is_out_borders(session.get_page()-1)){
+                show_page(session.set_page(session.get_page()-1));
+                ask_controllers(session);
+            }
             break;
         case 3:
             break;
         default:
-            ask_controllers();
+            ask_controllers(session);
             break;
     }
 }
 
-void Book::open(Session& session){
+void Book::open(Session& session) const{
     if (session.get_book_name() != name) {
         cout << "This session doesn't relate to this book\n";
         return;
     }
-    current_page = session.get_page();
-    show_page(current_page);
-    
+    show_page(session.get_page());
+    ask_controllers(session);
+
     // save and exit
-    session.set_page(current_page);
     session.set_date("14 Jan 2026");
 }

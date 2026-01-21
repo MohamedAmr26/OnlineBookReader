@@ -11,6 +11,8 @@ class Session{
         string book_name;
         int page;
         string date;
+        int id;
+        static int no_sessions;
     public:
         Session(){
             
@@ -50,6 +52,12 @@ class Session{
         string toString() const{
             return get_book_name() + " - " + get_date() + " - Page:" + to_string(get_page());
         }
+
+        int get_id() const{
+            return id;
+        }
 };
+
+int Session::no_sessions = 0;
 
 #endif

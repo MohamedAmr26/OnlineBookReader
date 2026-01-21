@@ -108,7 +108,15 @@ public:
         int choice;
         cout << sessions.size()+1 << "- " << "Create new Session\n";
         cin >> choice;
-        return choice;
+        if (choice <= sessions.size()){
+            return sessions[choice-1].get_id();
+        }
+        return -1;
+    }
+
+    void displayProfile(const User& user){
+        cout << "Username: " << user.get_username() << "\n" << "Admin: " << user.is_admin() << "\n"
+        << "Number of book sessions: " << user.sessionsSize() << endl;
     }
 };
 
@@ -146,27 +154,28 @@ int main(){
 
     if (!my_user.is_admin()){
         switch (current_choice){
+            case 1:
+                UI.displayProfile(my_user);
+                break;
             case 2:
                 vector<string> books_list = library.list_books();
                 UI.showBooks(books_list);
 
                 int bookChoice = UI.askBookChoose(books_list.size());
-                Book& my_book = library.get_book(bookChoice-1);
+                const Book& my_book = library.get_book(bookChoice-1);
 
-                int sessionChoice = UI.AskBookSessions(my_book.get_book_name(), my_user);
+                int sessionID = UI.AskBookSessions(my_book.get_book_name(), my_user);
                     
-                try{
-                    Session& book_session;
+                const Session* book_session = nullptr;
                     
-                    if (choice == my_user.sessionsSize() + 1) {
-                    } else {
-                    }
-                    
-                    my_book.open(book_session);
-                }catch(out_of_range err){
-                    cout << err.what() <<endl;
-                    // should return asking again
+                if (sessionID == -1) {
+                    book_session = new Session(my_book.get_book_name(), 0, "20 Jan 2026");
+                    my_user.insert_session(*book_session);
+                } else {
+                    book_session = &my_user.get_session(sessionID);
                 }
+
+                my_book.open(book_session);
                 break;
         }
     }

@@ -14,8 +14,8 @@ private:
     vector<string> pages;
     int current_page=0;
 
-    void show_page(int p);
-    void ask_controllers();
+    void show_page(int p) const;
+    void ask_controllers(Session& session) const;
     bool is_out_borders(int pos) const;
 public:
     Book(string name, string author, const vector<string> &pages)
@@ -32,7 +32,7 @@ public:
     {
         return this->get_book_name() == b.get_book_name();
     }
-    void open(Session& session);
+    void open(Session& session) const;
 };
 
 #endif
