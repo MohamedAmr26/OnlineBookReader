@@ -48,14 +48,10 @@ class User{
             return sessions.size();
         }
         const vector<Session>& get_sessions() const;
-        const vector<const Session&> get_sessions_for(string book_name) const;
+        vector<const Session*> get_sessions_for(string book_name) const;
 
         void insert_session(const Session& session);
 
-        const Session& get_session(int id) const{
-            auto it = find_if(sessions.begin(), sessions.end(), 
-            [id](const Session& session) { return session.get_id() == id; });
-            return *it;
-        }
+        Session& get_session(int id);
 };
 #endif

@@ -65,15 +65,17 @@ void Book::ask_controllers(Session& session) const{
     switch (n){
         case 2:
             if (!is_out_borders(session.get_page()+1)){
-                show_page(session.set_page(session.get_page()+1));
-                ask_controllers(session);
+                session.set_page(session.get_page()+1);
             }
+            show_page(session.get_page());
+            ask_controllers(session);
             break;
         case 1:
             if (!is_out_borders(session.get_page()-1)){
-                show_page(session.set_page(session.get_page()-1));
-                ask_controllers(session);
+                session.set_page(session.get_page()-1);
             }
+            show_page(session.get_page());
+            ask_controllers(session);
             break;
         case 3:
             break;

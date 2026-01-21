@@ -18,7 +18,7 @@ class Session{
             
         }
         Session(string book_name, int p, string d) 
-            : book_name(book_name), page(p), date(d) {}
+            : book_name(book_name), page(p), date(d), id(++no_sessions) {}
 
         Session& operator=(const Session& other) {
             if (this != &other) {
@@ -58,6 +58,5 @@ class Session{
         }
 };
 
-int Session::no_sessions = 0;
 
 #endif
