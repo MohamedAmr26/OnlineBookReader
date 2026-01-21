@@ -63,7 +63,7 @@ public:
         cout << "Invalid username/password" << endl;
     }
 
-    int showMainMenu(bool isAdmin) {
+    int askMainMenu(bool isAdmin) {
         int choice;
 
         cout << "\n---- Main Menu ----\n";
@@ -117,45 +117,24 @@ public:
     void displayProfile(const User& user){
         cout << "Username: " << user.get_username() << "\n" << "Admin: " << user.is_admin() << "\n"
         << "Number of book sessions: " << user.sessionsSize() << endl;
+        cout << "(1-9)- Return to Main Menu\n";
+        int c;
+        cin >> c;
     }
 };
 
-int main(){
-    map<string, pair<string, bool> > accounts;
-    accounts["mohamedAmr26"] = make_pair("examplePassword1", false);
-    accounts["ahmedSasa57"] = make_pair("examplePassword2", false);
-    accounts["seriousAdmin"] = make_pair("adminPassword1", true);
+User my_user;
+Library library;
+ConsoleUI UI;
 
-    User::load_accounts(accounts);
-
-    User my_user;
-    Library library;
-    ConsoleUI UI;
-
-    vector<string> pages(1);
-    pages[0] = "lorem ipsum";
-    Book mohamed_iwl("Mohamed in Wonderland", "SussyBaka", pages);
-    library.insert_book(mohamed_iwl);
-
-    // login
-    string username;
-    string password;
-
-    UI.showWelcome();
-    UI.askLogin(username, password);
-
-    while (!my_user.login(username, password)){
-        UI.showInvalidLogin();
-        UI.askLogin(username, password);
-    }
-
-    // main menu
-    int current_choice = UI.showMainMenu(my_user.is_admin());
+void main_menu_runner(){
+    int current_choice = UI.askMainMenu(my_user.is_admin());
 
     if (!my_user.is_admin()){
         switch (current_choice){
             case 1:
                 UI.displayProfile(my_user);
+                main_menu_runner();
                 break;
             case 2:
                 vector<string> books_list = library.list_books();
@@ -176,7 +155,37 @@ int main(){
                 }
 
                 my_book.open(book_session);
+                main_menu_runner();
                 break;
         }
     }
+}
+
+int main(){
+    map<string, pair<string, bool> > accounts;
+    accounts["mohamedAmr26"] = make_pair("examplePassword1", false);
+    accounts["ahmedSasa57"] = make_pair("examplePassword2", false);
+    accounts["seriousAdmin"] = make_pair("adminPassword1", true);
+
+    User::load_accounts(accounts);
+
+    vector<string> pages(1);
+    pages[0] = "lorem ipsum";
+    Book mohamed_iwl("Mohamed in Wonderland", "SussyBaka", pages);
+    library.insert_book(mohamed_iwl);
+
+    // login
+    string username;
+    string password;
+
+    UI.showWelcome();
+    UI.askLogin(username, password);
+
+    while (!my_user.login(username, password)){
+        UI.showInvalidLogin();
+        UI.askLogin(username, password);
+    }
+
+    // main menu
+    main_menu_runner();
 }
