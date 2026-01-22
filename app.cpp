@@ -6,46 +6,10 @@
 #include "User.h"
 #include "Book.h"
 #include "Session.h"
+#include "library.h"
 
 using namespace std;
 
-class Library{
-    private:
-    // change to set later
-        vector<Book> Books;
-    public:
-        Library(){}
-        bool insert_book(const Book& new_book){
-            auto it = find(Books.begin(), Books.end(), new_book);
-            if (it == Books.end()){
-                Books.push_back(new_book);
-                return true;
-            }
-            return false;
-        }
-        bool remove_book(int pos){
-            if (pos >= 0 && pos < no_books()){
-                Books.erase(Books.begin()+pos);
-                return true;
-            }
-            return false;
-        }
-        const Book& get_book(int pos) const{
-            if (pos >= 0 && pos < no_books())
-                return Books[pos];
-            throw out_of_range("Book index out of range");
-        }
-        int no_books() const{
-            return Books.size();
-        }
-        vector<string> list_books() const{
-            vector<string> book_names;
-            for (const auto& book : Books) {
-                book_names.push_back(book.get_book_name());
-            }
-            return book_names;
-        }
-};
 class ConsoleUI {
 public:
     void showWelcome() {
@@ -72,10 +36,12 @@ public:
         if (isAdmin) {
             cout << "2- Modify Library\n";
             cout << "3- Logout\n";
+            cout << "4- Exit\n";
         } else {
             cout << "2- Book List\n";
             cout << "3- My Reading Sessions\n";
             cout << "4- Logout\n";
+            cout << "5- Exit\n";
         }
 
         cin >> choice;
@@ -121,11 +87,39 @@ public:
         int c;
         cin >> c;
     }
+    int askUserSessions(const User& user){
+        cout << "\nYour Reading Sessions:\n";
+        const vector<Session>& sessions = user.get_sessions();
+        int i;
+        for (i = 0; i < sessions.size(); ++i) {
+            cout << i+1 << " - " << sessions[i].toString() << endl;
+        }
+        cout << sessions.size()+1 <<"- Return to Main Menu\n";
+        int c;
+        cin >> c;
+        if (c <= sessions.size()){
+            return sessions[c-1].get_id();
+        }
+        return -1;
+    }
 };
 
 User my_user;
 Library library;
 ConsoleUI UI;
+
+void loginUser(){
+    string username;
+    string password;
+
+    UI.showWelcome();
+    UI.askLogin(username, password);
+
+    while (!my_user.login(username, password)){
+        UI.showInvalidLogin();
+        UI.askLogin(username, password);
+    }
+}
 
 void main_menu_runner(){
     int current_choice = UI.askMainMenu(my_user.is_admin());
@@ -137,13 +131,15 @@ void main_menu_runner(){
                 main_menu_runner();
                 break;
             case 2:
+                if (true)
+                {
                 vector<string> books_list = library.list_books();
                 UI.showBooks(books_list);
 
                 int bookChoice = UI.askBookChoose(books_list.size());
                 const Book& my_book = library.get_book(bookChoice-1);
 
-                int sessionID = UI.AskBookSessions(my_book.get_book_name(), my_user);
+                 int sessionID = UI.AskBookSessions(my_book.get_book_name(), my_user);
                     
                 if (sessionID == -1) {
                     Session new_session(my_book.get_book_name(), 0, "20 Jan 2026");
@@ -155,7 +151,51 @@ void main_menu_runner(){
                     Session& book_session = my_user.get_session(sessionID);
                     my_book.open(book_session);
                 }
+                }
                 main_menu_runner();
+                break;
+            case 3:
+                if (true)
+                {
+                int sessionID = UI.askUserSessions(my_user);
+                if (sessionID != -1) {
+                    Session& book_session = my_user.get_session(sessionID);
+                    const Book& my_book = library.get_book(book_session.get_book_name());
+                    my_book.open(book_session);
+                }
+                }
+                main_menu_runner();
+                break;
+            case 4:
+                cout << "Logged out successfully.\n";
+                my_user.logout();
+                loginUser();
+                main_menu_runner();
+                break;
+            case 5:
+                return;
+            default:
+                break;
+        }
+    }else{
+        switch (current_choice){
+            case 1:
+                UI.displayProfile(my_user);
+                main_menu_runner();
+                break;
+            case 2:
+                // Library modification menu can be implemented here
+                main_menu_runner();
+                break;
+            case 3:
+                cout << "Logged out successfully.\n";
+                my_user.logout();
+                loginUser();
+                main_menu_runner();
+                break;
+            case 4:
+                return;
+            default:
                 break;
         }
     }
@@ -176,18 +216,6 @@ int main(){
     Book mohamed_iwl("Mohamed in Wonderland", "SussyBaka", pages);
     library.insert_book(mohamed_iwl);
 
-    // login
-    string username;
-    string password;
-
-    UI.showWelcome();
-    UI.askLogin(username, password);
-
-    while (!my_user.login(username, password)){
-        UI.showInvalidLogin();
-        UI.askLogin(username, password);
-    }
-
-    // main menu
+    loginUser();
     main_menu_runner();
 }

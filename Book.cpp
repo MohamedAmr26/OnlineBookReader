@@ -19,7 +19,7 @@ void Book::remove_page(int pos)
 }
 
 bool Book::is_out_borders(int pos) const{
-    return pos >= 0 && pos < pages.size();
+    return pos < 0 || pos >= pages.size();
 }
 
 string Book::get_page(int num) const
@@ -55,6 +55,7 @@ void Book::change_book_author(string new_author)
 }
 
 void Book::show_page(int p) const{
+    cout << "\n--- Page " << p+1 << " ---\n";
     cout << get_page(p) << endl;
 }
 void Book::ask_controllers(Session& session) const{

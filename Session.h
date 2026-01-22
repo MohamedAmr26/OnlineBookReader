@@ -50,7 +50,7 @@ class Session{
         }
 
         string toString() const{
-            return get_book_name() + " - " + get_date() + " - Page:" + to_string(get_page());
+            return get_book_name() + " - " + get_date() + " - Page:" + to_string(get_page()+1);
         }
 
         int get_id() const{

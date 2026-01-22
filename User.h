@@ -17,6 +17,7 @@ class User{
         vector<Session> sessions;
         // private static?
         static map<string, pair<string, bool> > accounts;
+        static map<string, vector<Session> > user_sessions;
     public:
         User(){
             username = "";
@@ -31,6 +32,7 @@ class User{
                 username = in_username;
                 password = in_password;
                 isAdmin = accounts[in_username].second;
+                sessions = user_sessions[username];
                 return true;
             }
             return false;
@@ -53,5 +55,12 @@ class User{
         void insert_session(const Session& session);
 
         Session& get_session(int id);
+        void logout(){
+            user_sessions[username] = sessions;
+            sessions.clear();
+            username = "";
+            password = "";
+            isAdmin = false;
+        }
 };
 #endif

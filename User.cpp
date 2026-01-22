@@ -4,6 +4,7 @@
 
 // static member definition
 map<string, pair<string, bool> > User::accounts;
+map<string, vector<Session> > User::user_sessions;
 
 const vector<Session>& User::get_sessions() const{
     return sessions;
