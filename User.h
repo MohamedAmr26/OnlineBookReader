@@ -24,11 +24,8 @@ class User{
         virtual void set_password(string password){
             this->password = password;
         }
-        virtual bool operator==(const User& other){
-            if (this != &other) {
-                return username == other.username && password == other.password;
-            }
-            return true;
+        virtual bool operator==(const User& other) const{
+            return username == other.username && password == other.password && isAdmin() == other.isAdmin();
         }
         virtual bool isAdmin() const = 0;
         virtual ~User() = default;
@@ -38,9 +35,6 @@ class Admin : public User {
         Admin(string username, string password) {
             set_username(username);
             set_password(password);
-        }
-        virtual bool operator==(const Admin& other){
-            return User::operator==(other) && isAdmin() == other.isAdmin();
         }
         bool isAdmin() const override {
             return true;

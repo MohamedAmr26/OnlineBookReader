@@ -12,7 +12,6 @@ private:
     string name;
     string author;
     vector<string> pages;
-    int current_page=0;
 public:
     bool is_out_borders(int pos) const;
     Book(string name, string author, const vector<string> &pages)
@@ -25,7 +24,7 @@ public:
     string get_book_author() const;
     void change_book_name(string new_name);
     void change_book_author(string new_author);
-    bool operator==(const Book &b)
+    bool operator==(const Book &b) const
     {
         return this->get_book_name() == b.get_book_name();
     }
