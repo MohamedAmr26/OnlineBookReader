@@ -31,7 +31,7 @@ class User{
             return true;
         }
         virtual bool isAdmin() const = 0;
-        virtual ~User() = 0;
+        virtual ~User() = default;
 };
 class Admin : public User {
     public:

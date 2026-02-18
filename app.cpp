@@ -22,6 +22,7 @@ public:
         cin >> username;
         cout << "Password: ";
         cin >> password;
+        cin.ignore();
     }
 
     void showInvalidLogin() {
@@ -65,17 +66,23 @@ public:
         }
         return choice;
     }
-    int AskBookSessions(const string& book_name, const vector<string>& session_strings, const vector<int>& session_ids){
+    int AskBookSessions(const string& book_name, const vector<pair<int, string> >& session_details){
         cout << "\nReading Sessions for \"" << book_name << "\":\n";
-        for (int i = 0; i < session_strings.size(); ++i) {
-            cout << (i + 1) << "- " << session_strings[i] << endl;
+        for (int i = 0; i < session_details.size(); ++i) {
+            cout << (i+1) << "- " << session_details[i].second << endl;
         }
 
         int choice;
-        cout << session_strings.size()+1 << "- " << "Create new Session\n";
+        cout << "0" << "- " << "Create new Session\n";
         cin >> choice;
-        if (choice <= session_strings.size()){
-            return session_ids[choice-1]; // Return session ID of selected session
+
+        if (choice && choice <= session_details.size()) {
+            return session_details[choice-1].first;
+        }
+        while (choice < 0 || choice > session_details.size()) {
+            cout << "Invalid choice. Please enter a number between 0 and " << session_details.size() << ": ";
+            cin.ignore();
+            cin >> choice;
         }
         return -1;
     }
@@ -90,18 +97,18 @@ public:
         << "Number of book sessions: " << sessionCount << endl;
         askReturnToMainMenu();
     }
-    int askUserSessions(const vector<string>& session_strings){
+    int askUserSessions(const vector<pair<int, string> >& session_details){
         cout << "\nYour Reading Sessions:\n";
 
-        for (int i = 0; i < session_strings.size(); ++i) {
-            cout << i+1 << " - " << session_strings[i] << endl;
+        for (int i = 0; i < session_details.size(); ++i) {
+            cout << i+1 << " - " << session_details[i].second << endl;
         }
-        cout << session_strings.size()+1 <<"- Return to Main Menu\n";
+        cout << session_details.size()+1 <<"- Return to Main Menu\n";
 
         int c;
         cin >> c;
-        if (c <= session_strings.size()){
-            return c-1; // Return index of selected session
+        if (c <= session_details.size()){
+            return session_details[c-1].first;
         }
         return -1;
     }
@@ -179,121 +186,219 @@ class AuthenticationService {
 class LibraryService {
     private:
         static vector<Book> Books;
-    public:
-        static bool insert_book(Book new_book){
-            if (find(Books.begin(), Books.end(), new_book) == Books.end()) {
-                Books.push_back(new_book);
-                return true;
+
+    static void show_page(string page_content, int page_num){
+        cout << "\n--- Page " << page_num+1 << " ---\n";
+        cout << page_content << endl;
+    }
+    static void ask_controllers(const Book& book, int& page_num){
+        cout << "1-Previous Page" << "            " << "2-Next Page" << "            " << "3-Save&Exit\n";
+        int n;
+        cin >> n;
+
+        switch (n)
+        {
+        case 2:
+            if (!book.is_out_borders(page_num + 1))
+            {
+                page_num++;
             }
-            return false;
-        }
-        static bool remove_book(const Book& target){
-            auto it = find(Books.begin(), Books.end(), target);
-            if (it != Books.end()){
-                Books.erase(it);
-                return true;
+            show_page(book.get_page(page_num), page_num);
+            ask_controllers(book, page_num);
+            break;
+        case 1:
+            if (!book.is_out_borders(page_num - 1))
+            {
+                page_num--;
             }
-            return false;
+            show_page(book.get_page(page_num), page_num);
+            ask_controllers(book, page_num);
+            break;
+        case 3:
+            break;
+        default:
+            ask_controllers(book, page_num);
+            break;
         }
-        static const Book& get_book(int pos){
-            if (pos >= 0 && pos < no_books()) {
-                auto it = Books.begin();
-                advance(it, pos);
-                return *it;
+    }
+public:
+    static const Book& add_book(const string& book_name, const string& author, int num_pages, const vector<string>& pages)
+    {
+        Book new_book(book_name, author, pages);
+        if (find(Books.begin(), Books.end(), new_book) == Books.end())
+        {
+            Books.push_back(new_book);
+            return Books.back();
+        }
+        throw out_of_range("Book already exists");
+    }
+    static bool remove_book(const Book &target)
+    {
+        auto it = find(Books.begin(), Books.end(), target);
+        if (it != Books.end())
+        {
+            Books.erase(it);
+            return true;
+        }
+        return false;
+    }
+    static const Book &get_book(int pos)
+    {
+        if (pos >= 0 && pos < no_books())
+        {
+            auto it = Books.begin();
+            advance(it, pos);
+            return *it;
+        }
+        throw out_of_range("Book index out of range");
+    }
+    static const Book &get_book(string book_name)
+    {
+        for (const auto &book : Books)
+        {
+            if (book.get_book_name() == book_name)
+            {
+                return book;
             }
-            throw out_of_range("Book index out of range");
         }
-        static const Book& get_book(string book_name) {
-            for (const auto& book : Books) {
-                if (book.get_book_name() == book_name) {
-                    return book;
-                }
-            }
-            throw out_of_range("Book not found");
+        throw out_of_range("Book not found");
+    }
+    static int no_books()
+    {
+        return Books.size();
+    }
+    static vector<string> list_book_names()
+    {
+        vector<string> book_names;
+        for (const auto &book : Books)
+        {
+            book_names.push_back(book.get_book_name());
         }
-        static int no_books(){
-            return Books.size();
+        return book_names;
+    }
+    static vector<const Book*> list_books()
+    {
+        vector<const Book*> book_refs;
+        for (const auto &book : Books)
+        {
+            book_refs.push_back(&book);
         }
-        static vector<string> list_books(){
-            vector<string> book_names;
-            for (const auto& book : Books) {
-                book_names.push_back(book.get_book_name());
-            }
-            return book_names;
+        return book_refs;
+    }
+    static int openBook(const Book &book, int page)
+    {
+        if (!book.is_out_borders(page) && find(Books.begin(), Books.end(), book) != Books.end())
+        {
+            show_page(book.get_page(page), page);
+            ask_controllers(book, page);
+            return page;
         }
-        static void openBook(string book_name, Session& session) {
-            const Book& book = get_book(book_name);
-            book.open(session);
-        }
+        return -1;
+    }
 };
 vector<Book> LibraryService::Books;
+
+class SessionService {
+    private:
+        static vector<Session> Sessions;
+
+        static Session& get_session_obj(int session_id) {
+            for (auto& session : Sessions) {
+                if (session.get_id() == session_id) {
+                    return session;
+                }
+            }
+            throw out_of_range("Session not found");
+        }
+    public:
+        static const Session& add_session(const User& user, const Book& book, int page) {
+            Session session(&book, &user, Sessions.size() + 1, page);
+            Sessions.push_back(session);
+            return Sessions.back();
+        }
+        static Session& get_session_unlocked(int session_id) {
+            return get_session_obj(session_id);
+        }
+        static const Session& get_session(int session_id) {
+            return get_session_obj(session_id);
+        }
+        static vector<pair<int, string>> list_sessions_for(const User& user, const Book* book = nullptr) {
+            vector<pair<int, string>> session_strings;
+            for (const auto& session : Sessions) {
+                if (session.get_user() == &user && (book == nullptr || session.get_book() == book)) {
+                    session_strings.push_back(make_pair(session.get_id(), session.toString()));
+                }
+            }
+            return session_strings;
+        }
+};
+vector<Session> SessionService::Sessions;
 
 class App {
 private:
     static UI* app_ui;
 
-    static void loginUser(){
+    static User* loginUser(){
         string username, password;
         app_ui->askLogin(username, password);
 
-        while (!AuthenticationService::login(username, password))
+        User* user = AuthenticationService::login(username, password);
+
+        while (!user)
         {
             app_ui->showInvalidLogin();
             app_ui->askLogin(username, password);
+            user = AuthenticationService::login(username, password);
         }
 
-        UserService::syncUser();
+        return user;
     }
-    static void main_menu_non_admin(int current_choice){
+    static void main_menu_non_admin(int current_choice, User* user){
         switch (current_choice){
             case 1:
-                app_ui->displayProfile(UserService::get_username(), false, UserService::sessionsSize());
-                loadMainMenu();
+                app_ui->displayProfile(user->get_username(), user->isAdmin(), SessionService::list_sessions_for(*user).size());
+                loadMainMenu(user);
                 break;
             case 2:
             {
-                vector<string> books_list = LibraryService::list_books();
+                vector<string> books_list = LibraryService::list_book_names();
                 app_ui->showBooks(books_list);
 
                 int bookChoice = app_ui->askBookChoose(books_list.size());
                 string bookName = books_list[bookChoice-1];
+                const Book& book = LibraryService::get_book(bookName);
 
-                int sessionID = app_ui->AskBookSessions(bookName, LibraryService::get_sessions_for(bookName), LibraryService::get_session_ids_for(bookName));
+                auto sessions_list =  SessionService::list_sessions_for(*user, &book);
+                
+                int sessionID = app_ui->AskBookSessions(bookName, sessions_list);
 
                 if (sessionID == -1){
-                    Session new_session(bookName, 0, "20 Jan 2026");
-                    UserService::insert_session(new_session);
+                    const Session& new_session = SessionService::add_session(*user, book, 0);
 
-                    Session &book_session = UserService::get_session(new_session.get_id());
-                    LibraryService::openBook(bookName, book_session);
+                    LibraryService::openBook(*new_session.get_book(), new_session.get_page());
                 }else{
-                    Session &book_session = UserService::get_session(sessionID);
-                    LibraryService::openBook(bookName, book_session);
+                    Session &book_session = SessionService::get_session_unlocked(sessionID);
+                    int newPage = LibraryService::openBook(*book_session.get_book(), book_session.get_page());
+                    book_session.set_page(newPage);
                 }
-                loadMainMenu();
+                loadMainMenu(user);
                 break;
             }
             case 3:
             {
-                vector<pair<int, string>> session_strings = UserService::list_sessions();
-                vector<string> session_string_values;
-                vector<int> session_ids;
-                for (const auto& pair : session_strings) {
-                    session_string_values.push_back(pair.second);
-                    session_ids.push_back(pair.first);
-                }
-                int sessionIndex = app_ui->askUserSessions(session_string_values);
+                auto sessions_list =  SessionService::list_sessions_for(*user);
+                int sessionID = app_ui->askUserSessions(sessions_list);
 
-                if (sessionIndex != -1){
-                    Session &book_session = UserService::get_session(session_ids[sessionIndex]);
-                    LibraryService::openBook(book_session.get_book_name(), book_session);
+                if (sessionID != -1){
+                    const Session &book_session = SessionService::get_session(sessionID);
+                    LibraryService::openBook(*book_session.get_book(), book_session.get_page());
                 }
-                loadMainMenu();
+                loadMainMenu(user);
                 break;
             }
             case 4:
                 cout << "Logged out successfully.\n";
-                if (!AuthenticationService::logout()) {
+                if (!AuthenticationService::logout(user)) {
                     cout << "Error logging out.\n";
                     return;
                 }
@@ -305,11 +410,11 @@ private:
                 break;
             }
     }
-    static void main_menu_admin(int current_choice){
+    static void main_menu_admin(int current_choice, User* user){
          switch (current_choice){
             case 1:
-                app_ui->displayProfile(UserService::get_username(), true, UserService::sessionsSize());
-                loadMainMenu();
+                app_ui->displayProfile(user->get_username(), user->isAdmin(), SessionService::list_sessions_for(*user).size());
+                loadMainMenu(user);
                 break;
             case 2:
             {
@@ -325,38 +430,49 @@ private:
                         for (int i = 0; i < num_pages; ++i) {
                             app_ui->askPageContent(i+1, pages[i]);
                         }
-                        Book new_book(book_name, author, pages);
-                        LibraryService::insert_book(new_book);
-                        cout << "Book added successfully!\n";
-                        loadMainMenu();
+
+                        try{
+                            LibraryService::add_book(book_name, author, num_pages, pages);
+                            cout << "Book added successfully!\n";
+                        }catch (const out_of_range& e) {
+                            cout << "Error adding book: " << e.what() << "\n";
+                        }
+                        loadMainMenu(user);
                         break;
                     }
                     case 2:
                     {
-                        vector<string> books_list = LibraryService::list_books();
+                        vector<string> books_list = LibraryService::list_book_names();
                         app_ui->showBooks(books_list);
+
                         int bookChoice = app_ui->askBookChoose(books_list.size());
-                        LibraryService::remove_book(bookChoice-1);
-                        cout << "Book removed successfully!\n";
-                        loadMainMenu();
+                        const Book& book = LibraryService::get_book(books_list[bookChoice-1]);
+                        bool res = LibraryService::remove_book(book);
+
+                        if (!res) {
+                            cout << "Error removing book.\n";
+                        } else {
+                            cout << "Book removed successfully!\n";
+                        }
+                        loadMainMenu(user);
                         break;
                     }
                     case 3:
                     {
-                        vector<string> books_list = LibraryService::list_books();
+                        vector<string> books_list = LibraryService::list_book_names();
                         app_ui->showBooks(books_list);
                         app_ui->askReturnToMainMenu();
                         break;
                     }
                     case 4:
-                        loadMainMenu();
+                        loadMainMenu(user);
                         break;
                 }                
                 break;
             }
             case 3:
                 cout << "Logged out successfully.\n";
-                if (!AuthenticationService::logout()) {
+                if (!AuthenticationService::logout(user)) {
                     cout << "Error logging out.\n";
                     return;
                 }
@@ -365,12 +481,12 @@ private:
                 return;
          }
      }
-   static void loadMainMenu(){
-        int current_choice = app_ui->askMainMenu(AuthenticationService::isAuthorized());
-        if (AuthenticationService::isAuthorized()){
-            main_menu_admin(current_choice);
+    static void loadMainMenu(User* user){
+        int current_choice = app_ui->askMainMenu(user->isAdmin());
+        if (user->isAdmin()){
+            main_menu_admin(current_choice, user);
         }else
-            main_menu_non_admin(current_choice);
+            main_menu_non_admin(current_choice, user);
     }
 public:
     static void setUI(UI* ui) {
@@ -378,8 +494,14 @@ public:
     }
     static void run() {
         app_ui->showWelcome();
-        loginUser();
-        loadMainMenu();
+        User* user = loginUser();
+
+        if (user == nullptr) {
+            cout << "Login failed. Closing program.\n";
+            return;
+        }
+
+        loadMainMenu(user);
     }
 };
 
@@ -392,15 +514,11 @@ int main(){
     accounts["seriousAdmin"] = make_pair("adminPassword1", true);
     DatastoreService::load_accounts(accounts);
 
-    Library library;
-    LibraryService::setLibrary(&library);
-
     vector<string> pages(3);
     pages[0] = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.";
     pages[1] = "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).";
     pages[2] = "Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source.";
-    Book mohamed_iwl("Mohamed in Wonderland", "SussyBaka", pages);
-    LibraryService::insert_book(mohamed_iwl);
+    LibraryService::add_book("Mohamed in Wonderland", "SussyBaka", 3, pages);
 
     App::setUI(new ConsoleUI());
     App::run();
