@@ -6,55 +6,35 @@ using namespace std;
 #ifndef SESSION_H
 #define SESSION_H
 
+class Book;
+class User;
+
 class Session{
     private:
-        string book_name;
-        int page;
-        string date;
+        const Book* book;
+        const User* user;
         int id;
-        static int no_sessions;
+        int page;
     public:
-        Session(){
-            
-        }
-        Session(string book_name, int p, string d) 
-            : book_name(book_name), page(p), date(d), id(++no_sessions) {}
-
+        Session(const Book* b, const User* u, int i, int p) : book(b), user(u), id(i), page(p) {}
         Session& operator=(const Session& other) {
             if (this != &other) {
-                book_name = other.book_name;
-                page = other.page;
-                date = other.date;
+                book = other.book;
+                user = other.user;
+                id = other.id;
             }
             return *this;
         }
-
-        string get_book_name() const {
-            return book_name;
-        }
-
-        int get_page() const {
-            return page;
-        }
-
-        string get_date() const {
-            return date;
-        }
-
-        void set_page(int p) {
-            page = p;
-        }
-
-        void set_date(string d) {
-            date = d;
-        }
-
-        string toString() const{
-            return get_book_name() + " - " + get_date() + " - Page:" + to_string(get_page()+1);
-        }
-
-        int get_id() const{
+        Session(const Session& other)
+            : book(other.book), user(other.user), id(other.id) {}
+        int get_id() const {
             return id;
+        }
+        const Book* get_book() const {
+            return book;
+        }
+        const User* get_user() const {
+            return user;
         }
 };
 

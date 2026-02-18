@@ -2,49 +2,14 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <unordered_set>
 
 #include "User.h"
 #include "Book.h"
 #include "Session.h"
-#include "library.h"
-
-/*
-Application
-|-- UI (Interface)
-    |-- ConsoleUI (Implementation)
-
-Application
-|-- Service
-    |-- AuthenticationService
-    |-- UserService
-
-Service
-|-- Models
-    |-- User
-    |-- Book
-    |-- Session
-    |-- Library
-*/
+#include "UI.h"
 
 using namespace std;
-class UserService;
-
-class UI{
-public:
-    virtual void showWelcome() = 0;
-    virtual void askLogin(string& username, string& password) = 0;
-    virtual void showInvalidLogin() = 0;
-    virtual int askMainMenu(bool isAdmin) = 0;
-    virtual void showBooks(const vector<string>& books) = 0;
-    virtual int askBookChoose(int size) = 0;
-    virtual int AskBookSessions(const string& book_name, const vector<string>& session_strings, const vector<int>& session_ids) = 0;
-    virtual void displayProfile(string username, bool isAdmin, int sessionCount) = 0;
-    virtual int askUserSessions(const vector<string>& session_strings) = 0;
-    virtual int askAdminLibraryMenu() = 0;
-    virtual void askBookDetails(string& book_name, string& author, int& num_pages) = 0;
-    virtual void askPageContent(int page_num, string& content) = 0;
-    virtual void askReturnToMainMenu() = 0;
-};
 
 class ConsoleUI : public UI {
 public:
@@ -166,103 +131,102 @@ public:
     }
 };
 
-class AuthenticationService {
+class DatastoreService {
     private:
-        static User* user;
-    public:
-        static bool login(string &username, string &password){
-            return user->login(username, password);
+        static map<string, pair<string, bool> > accounts;
+    public:        
+        static void load_accounts(const map<string, pair<string, bool> >& accs) {
+            accounts = accs;
         }
-        static bool isAuthorized() {
-            return user->is_admin();
+        static map<string, pair<string, bool> >& get_accounts() {
+            return accounts;
         }
-        static bool logout() {
-            try{
-                user->logout();
-                return true;
-            }catch(...){
-                return false;
+        static void add_account(const string& username, const string& password, bool isAdmin) {
+            accounts[username] = make_pair(password, isAdmin);
+        }
+        static pair<int, bool> get_account(const string& username, const string& password) {
+            auto it = accounts.find(username);
+            if (it != accounts.end() && it->second.first == password) {
+                return make_pair(1, it->second.second);
             }
+            return {-1, false};
         }
-        friend class UserService;
 };
-User* AuthenticationService::user = new User(); // why cannot do it inside main?
+map<string, pair<string, bool> > DatastoreService::accounts;
 
-class UserService {
-    private:
-        static User* user;
+class AuthenticationService {
     public:
-        static void syncUser() {
-            user = AuthenticationService::user;
-        }
-        static string get_username() {
-            return user->get_username();
-        }
-        static int sessionsSize() {
-            return user->sessionsSize();
-        }
-        static const vector<Session>& get_user_book_sessions() {
-            return user->get_sessions();
-        }
-        static void insert_session(const Session& session) {
-            user->insert_session(session);
-        }
-        static Session& get_session(int id) {
-            return user->get_session(id);
-        }
-        static vector<pair<int, string>> list_sessions() {
-            vector<pair<int, string>> session_pairs;
-            for (const auto& session : user->get_sessions()) {
-                session_pairs.push_back({session.get_id(), session.toString()});
+        static User* login(string &username, string &password){
+            auto result = DatastoreService::get_account(username, password);
+            if (result.first == 1) {
+                if (result.second) {
+                    return new Admin(username, password);
+                } else {
+                    return new Customer(username, password);
+                }
             }
-            return session_pairs;
+            return nullptr;
+        }
+        static bool logout(User* user) {
+            if (user)
+                delete user;
+            else
+                return false;
+            return true;
         }
 };
-User* UserService::user = nullptr;
 
 class LibraryService {
     private:
-        static Library* library;
+        static vector<Book> Books;
     public:
-        static void setLibrary(Library* lib) {
-            library = lib;
+        static bool insert_book(Book new_book){
+            if (find(Books.begin(), Books.end(), new_book) == Books.end()) {
+                Books.push_back(new_book);
+                return true;
+            }
+            return false;
         }
-        static vector<string> list_books() {
-            return library->list_books();
+        static bool remove_book(const Book& target){
+            auto it = find(Books.begin(), Books.end(), target);
+            if (it != Books.end()){
+                Books.erase(it);
+                return true;
+            }
+            return false;
         }
-        static void insert_book(const Book& book) {
-            library->insert_book(book);
+        static const Book& get_book(int pos){
+            if (pos >= 0 && pos < no_books()) {
+                auto it = Books.begin();
+                advance(it, pos);
+                return *it;
+            }
+            throw out_of_range("Book index out of range");
         }
-        static string get_book_name(int pos) {
-            return library->get_book(pos).get_book_name();
-        }
-        static void remove_book(int pos) {
-            library->remove_book(pos);
-        }
-        static vector<string> get_sessions_for(string book_name) {
-            vector<string> session_strings;
-            for (const auto& session : UserService::get_user_book_sessions()) {
-                if (session.get_book_name() == book_name) {
-                    session_strings.push_back(session.toString());
+        static const Book& get_book(string book_name) {
+            for (const auto& book : Books) {
+                if (book.get_book_name() == book_name) {
+                    return book;
                 }
             }
-            return session_strings;
+            throw out_of_range("Book not found");
         }
-        static vector<int> get_session_ids_for(string book_name) {
-            vector<int> session_ids;
-            for (const auto& session : UserService::get_user_book_sessions()) {
-                if (session.get_book_name() == book_name) {
-                    session_ids.push_back(session.get_id());
-                }
+        static int no_books(){
+            return Books.size();
+        }
+        static vector<string> list_books(){
+            vector<string> book_names;
+            for (const auto& book : Books) {
+                book_names.push_back(book.get_book_name());
             }
-            return session_ids;
+            return book_names;
         }
         static void openBook(string book_name, Session& session) {
-            const Book& book = library->get_book(book_name);
+            const Book& book = get_book(book_name);
             book.open(session);
         }
 };
-Library* LibraryService::library = nullptr;
+vector<Book> LibraryService::Books;
 
 class App {
 private:
@@ -426,8 +390,7 @@ int main(){
     accounts["mohamedAmr26"] = make_pair("examplePassword1", false);
     accounts["ahmedSasa57"] = make_pair("examplePassword2", false);
     accounts["seriousAdmin"] = make_pair("adminPassword1", true);
-
-    User::load_accounts(accounts);
+    DatastoreService::load_accounts(accounts);
 
     Library library;
     LibraryService::setLibrary(&library);

@@ -6,61 +6,54 @@ using namespace std;
 
 #ifndef USER_H
 #define USER_H
-class Session;
 
-// thinking of using JSON later
 class User{
     private:
         string username;
         string password;
-        bool isAdmin;
-        vector<Session> sessions;
-        // private static?
-        static map<string, pair<string, bool> > accounts;
-        static map<string, vector<Session> > user_sessions;
     public:
-        User(){
-            username = "";
-            password = "";
-            isAdmin = false;
-        }
-        static void load_accounts(const map<string, pair<string, bool> >& accounts) {
-            User::accounts = accounts;
-        }            
-        bool login(string in_username, string in_password){
-            if (accounts.count(in_username) && accounts[in_username].first == in_password){
-                username = in_username;
-                password = in_password;
-                isAdmin = accounts[in_username].second;
-                sessions = user_sessions[username];
-                return true;
-            }
-            return false;
-        }
-        bool is_admin() const{
-            return isAdmin;
-        }
-        string get_username() const{
+        virtual string get_username() const{
             return username;
         }
-        static bool is_authorized(const User& user){
-            return user.is_admin();
+        virtual void set_username(string username){
+            this->username = username;
         }
-        int sessionsSize() const{
-            return sessions.size();
+        virtual string get_password() const{
+            return password;
         }
-        const vector<Session>& get_sessions() const;
-        vector<const Session*> get_sessions_for(string book_name) const;
-
-        void insert_session(const Session& session);
-
-        Session& get_session(int id);
-        void logout(){
-            user_sessions[username] = sessions;
-            sessions.clear();
-            username = "";
-            password = "";
-            isAdmin = false;
+        virtual void set_password(string password){
+            this->password = password;
+        }
+        virtual bool operator==(const User& other){
+            if (this != &other) {
+                return username == other.username && password == other.password;
+            }
+            return true;
+        }
+        virtual bool isAdmin() const = 0;
+        virtual ~User() = 0;
+};
+class Admin : public User {
+    public:
+        Admin(string username, string password) {
+            set_username(username);
+            set_password(password);
+        }
+        virtual bool operator==(const Admin& other){
+            return User::operator==(other) && isAdmin() == other.isAdmin();
+        }
+        bool isAdmin() const override {
+            return true;
+        }
+};
+class Customer : public User {
+    public:
+        Customer(string username, string password) {
+            set_username(username);
+            set_password(password);
+        }
+        bool isAdmin() const override {
+            return false;
         }
 };
 #endif
