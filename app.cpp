@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <unordered_set>
 #include <limits>
+#include <memory>
 
 
 #include "User.h"
@@ -187,7 +188,7 @@ class AuthenticationService {
 
 class LibraryService {
     private:
-        static vector<Book> Books;
+        static vector<unique_ptr<Book>> Books;
 
     static void show_page(string page_content, int page_num){
         cout << "\n--- Page " << page_num+1 << " ---\n";
@@ -226,17 +227,18 @@ class LibraryService {
 public:
     static const Book& add_book(const string& book_name, const string& author, int num_pages, vector<string> pages)
     {
-        Book new_book(book_name, author, pages);
-        if (find(Books.begin(), Books.end(), new_book) == Books.end())
-        {
-            Books.push_back(new_book);
-            return Books.back();
+        for (const auto &bptr : Books) {
+            if (bptr->get_book_name() == book_name) {
+                throw out_of_range("Book already exists");
+            }
         }
-        throw out_of_range("Book already exists");
+        auto new_book = make_unique<Book>(book_name, author, pages);
+        Books.push_back(move(new_book));
+        return *Books.back();
     }
     static bool remove_book(const Book &target)
     {
-        auto it = find(Books.begin(), Books.end(), target);
+        auto it = find_if(Books.begin(), Books.end(), [&target](const unique_ptr<Book>& bptr){ return *bptr == target; });
         if (it != Books.end())
         {
             Books.erase(it);
@@ -248,19 +250,17 @@ public:
     {
         if (pos >= 0 && pos < no_books())
         {
-            auto it = Books.begin();
-            advance(it, pos);
-            return *it;
+            return *Books[pos];
         }
         throw out_of_range("Book index out of range");
     }
     static const Book &get_book(string book_name)
     {
-        for (const auto &book : Books)
+        for (const auto &bptr : Books)
         {
-            if (book.get_book_name() == book_name)
+            if (bptr->get_book_name() == book_name)
             {
-                return book;
+                return *bptr;
             }
         }
         throw out_of_range("Book not found");
@@ -272,25 +272,26 @@ public:
     static vector<string> list_book_names()
     {
         vector<string> book_names;
-        for (const auto &book : Books)
+        for (const auto &bptr : Books)
         {
-            book_names.push_back(book.get_book_name());
+            book_names.push_back(bptr->get_book_name());
         }
         return book_names;
     }
     static vector<const Book*> list_books()
     {
         vector<const Book*> book_refs;
-        for (const auto &book : Books)
+        for (const auto &bptr : Books)
         {
-            book_refs.push_back(&book);
+            book_refs.push_back(bptr.get());
         }
         return book_refs;
     }
     static int openBook(const Book &book, int page)
     {
-        if (!book.is_out_borders(page) && find(Books.begin(), Books.end(), book) != Books.end())
-        {
+        if (book.is_out_borders(page)) return -1;
+        auto it = find_if(Books.begin(), Books.end(), [&book](const unique_ptr<Book>& bptr){ return *bptr == book; });
+        if (it != Books.end()) {
             show_page(book.get_page(page), page);
             ask_controllers(book, page);
             return page;
@@ -298,7 +299,7 @@ public:
         return -1;
     }
 };
-vector<Book> LibraryService::Books;
+vector<unique_ptr<Book>> LibraryService::Books;
 
 class SessionService {
     private:
@@ -456,12 +457,12 @@ private:
 
                         int bookChoice = app_ui->askBookChoose(books_list.size());
                         const Book& book = LibraryService::get_book(books_list[bookChoice-1]);
+                        SessionService::remove_sessions_for_book(book);
                         bool res = LibraryService::remove_book(book);
 
                         if (!res) {
                             cout << "Error removing book.\n";
                         } else {
-                            SessionService::remove_sessions_for_book(book);
                             cout << "Book removed successfully!\n";
                         }
                         loadMainMenu(user);
