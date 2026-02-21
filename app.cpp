@@ -371,6 +371,13 @@ private:
                 vector<string> books_list = LibraryService::list_book_names();
                 app_ui->showBooks(books_list);
 
+                if (books_list.empty()) {
+                    cout << "No books available in the library.\n";
+                    app_ui->askReturnToMainMenu();
+                    loadMainMenu(user);
+                    break;
+                }
+                
                 int bookChoice = app_ui->askBookChoose(books_list.size());
                 string bookName = books_list[bookChoice-1];
                 const Book& book = LibraryService::get_book(bookName);
