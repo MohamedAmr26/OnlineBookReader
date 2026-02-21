@@ -6,9 +6,9 @@
 #include <limits>
 
 
-#include "User.h"
-#include "Book.h"
-#include "Session.h"
+#include "./Models/User.h"
+#include "./Models/Book.h"
+#include "./Models/Session.h"
 #include "UI.h"
 
 using namespace std;
@@ -189,6 +189,15 @@ class LibraryService {
     private:
         static vector<Book> Books;
 
+    static const Book &get_book(int book_id){
+        for (const auto &book : Books){
+            if (book.get_id() == book_id)
+            {
+                return book;
+            }
+        }
+        throw out_of_range("Book not found");
+    }
     static void show_page(string page_content, int page_num){
         cout << "\n--- Page " << page_num+1 << " ---\n";
         cout << page_content << endl;
@@ -224,46 +233,26 @@ class LibraryService {
         }
     }
 public:
-    static const Book& add_book(const string& book_name, const string& author, int num_pages, vector<string> pages)
+    static const int add_book(const string& book_name, const string& author, int num_pages, vector<string> pages)
     {
         Book new_book(book_name, author, pages);
         if (find(Books.begin(), Books.end(), new_book) == Books.end())
         {
             Books.push_back(new_book);
-            return Books.back();
+            return new_book.get_id();
         }
         throw out_of_range("Book already exists");
     }
-    static bool remove_book(const Book &target)
-    {
-        auto it = find(Books.begin(), Books.end(), target);
+    static bool remove_book(int book_id){
+        auto it = find_if(Books.begin(), Books.end(), [&book_id](const Book& book){
+            return book.get_id() == book_id;
+        });
         if (it != Books.end())
         {
             Books.erase(it);
             return true;
         }
         return false;
-    }
-    static const Book &get_book(int pos)
-    {
-        if (pos >= 0 && pos < no_books())
-        {
-            auto it = Books.begin();
-            advance(it, pos);
-            return *it;
-        }
-        throw out_of_range("Book index out of range");
-    }
-    static const Book &get_book(string book_name)
-    {
-        for (const auto &book : Books)
-        {
-            if (book.get_book_name() == book_name)
-            {
-                return book;
-            }
-        }
-        throw out_of_range("Book not found");
     }
     static int no_books()
     {
@@ -278,19 +267,20 @@ public:
         }
         return book_names;
     }
-    static vector<const Book*> list_books()
+    static vector<int> list_books()
     {
-        vector<const Book*> book_refs;
+        vector<int> book_refs;
         for (const auto &book : Books)
         {
-            book_refs.push_back(&book);
+            book_refs.push_back(book.get_id());
         }
         return book_refs;
     }
-    static int openBook(const Book &book, int page)
+    static int openBook(int id, int page)
     {
-        if (!book.is_out_borders(page) && find(Books.begin(), Books.end(), book) != Books.end())
-        {
+        const Book& book = get_book(id);
+
+        if (!book.is_out_borders(page)){
             show_page(book.get_page(page), page);
             ask_controllers(book, page);
             return page;
@@ -305,7 +295,7 @@ class SessionService {
         static vector<Session> Sessions;
         static int next_id;
 
-        static Session& get_session_obj(int session_id) {
+        static Session& get_session(int session_id) {
             for (auto& session : Sessions) {
                 if (session.get_id() == session_id) {
                     return session;
@@ -314,29 +304,28 @@ class SessionService {
             throw out_of_range("Session not found");
         }
     public:
-        static Session& add_session(const User& user, const Book& book, int page) {
-            Session session(&book, &user, next_id++, page);
+        static int add_session(const User& user, int book_id, int page) {
+            Session session(book_id, &user, next_id++, page);
             Sessions.push_back(session);
-            return Sessions.back();
+            return Sessions.back().get_id();
         }
-        static Session& get_session(int session_id) {
-            return get_session_obj(session_id);
-        }
-        static vector<pair<int, string>> list_sessions_for(const User& user, const Book* book = nullptr) {
+        static vector<pair<int, string>> list_sessions_for(const User& user, int book_id = -1) {
             vector<pair<int, string>> session_strings;
             for (const auto& session : Sessions) {
-                if (user == *session.get_user() && (book == nullptr || session.get_book() == book)) {
+                if (user == *session.get_user() && (book_id == -1 || session.get_book_id() == book_id)) {
                     session_strings.push_back(make_pair(session.get_id(), session.toString()));
                 }
             }
             return session_strings;
         }
-        static void remove_sessions_for_book(const Book& book) {
+        static void remove_sessions_for_book(int book_id) {
             Sessions.erase(remove_if(Sessions.begin(), Sessions.end(),
-                [&book](const Session& session) {
-                    return session.get_book() == &book;
+                [&book_id](const Session& session) {
+                    return session.get_book_id() == book_id;
                 }), Sessions.end());
         }
+        // get bookid, pagenum from session by sessionid
+        
 };
 vector<Session> SessionService::Sessions;
 int SessionService::next_id = 1;

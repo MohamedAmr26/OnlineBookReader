@@ -7,9 +7,15 @@ using namespace std;
 #include "Book.h"
 #include "Session.h"
 
+int Book::next_id = 0;
+
 void Book::add_page(string page_context)
 {
     pages.push_back(page_context);
+}
+
+int Book::get_id() const{
+    return id;
 }
 
 void Book::remove_page(int pos)

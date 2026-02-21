@@ -11,18 +11,18 @@ class User;
 
 class Session{
     private:
-        const Book* book;
+        int book_id;
         const User* user;
         int id;
         int page;
     public:
-        Session(const Book* b, const User* u, int id, int p) : book(b), user(u), id(id), page(p) {}
+        Session(int b, const User* u, int id, int p) : book_id(b), user(u), id(id), page(p) {}
         void set_id(int new_id) {
             id = new_id;
         }
         Session& operator=(const Session& other) {
             if (this != &other) {
-                book = other.book;
+                book_id = other.book_id;
                 user = other.user;
                 id = other.id;
                 page = other.page;
@@ -30,12 +30,12 @@ class Session{
             return *this;
         }
         Session(const Session& other)
-            : book(other.book), user(other.user), id(other.id), page(other.page) {}
+            : book_id(other.book_id), user(other.user), id(other.id), page(other.page) {}
         int get_id() const {
             return id;
         }
-        const Book* get_book() const {
-            return book;
+        int get_book_id() const {
+            return book_id;
         }
         const User* get_user() const {
             return user;

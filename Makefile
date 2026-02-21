@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall
 TARGET = app
-SOURCES = app.cpp Book.cpp Session.cpp
+SOURCES = app.cpp ./Models/Book.cpp ./Models/Session.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 all: $(TARGET)
