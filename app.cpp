@@ -304,15 +304,15 @@ class SessionService {
             throw out_of_range("Session not found");
         }
     public:
-        static int add_session(const User& user, int book_id, int page) {
-            Session session(book_id, &user, next_id++, page);
+        static int add_session(string username, int book_id, int page) {
+            Session session(book_id, username, next_id++, page);
             Sessions.push_back(session);
             return Sessions.back().get_id();
         }
-        static vector<pair<int, string>> list_sessions_for(const User& user, int book_id = -1) {
+        static vector<pair<int, string>> list_sessions_for(const string& username, int book_id = -1) {
             vector<pair<int, string>> session_strings;
             for (const auto& session : Sessions) {
-                if (user == *session.get_user() && (book_id == -1 || session.get_book_id() == book_id)) {
+                if (session.get_username() == username && (book_id == -1 || session.get_book_id() == book_id)) {
                     session_strings.push_back(make_pair(session.get_id(), session.toString()));
                 }
             }
@@ -324,8 +324,15 @@ class SessionService {
                     return session.get_book_id() == book_id;
                 }), Sessions.end());
         }
-        // get bookid, pagenum from session by sessionid
-        
+        static int get_book_id_from_session(int session_id) {
+            return get_session(session_id).get_book_id();
+        }
+        static int get_page_from_session(int session_id) {
+            return get_session(session_id).get_page();
+        }
+        static void update_session_page(int session_id, int new_page) {
+            get_session(session_id).set_page(new_page);
+        }
 };
 vector<Session> SessionService::Sessions;
 int SessionService::next_id = 1;
@@ -352,53 +359,57 @@ private:
     static void main_menu_non_admin(int current_choice, User* user){
         switch (current_choice){
             case 1:
-                app_ui->displayProfile(user->get_username(), user->isAdmin(), SessionService::list_sessions_for(*user).size());
+                app_ui->displayProfile(user->get_username(), user->isAdmin(), SessionService::list_sessions_for(user->get_username()).size());
                 loadMainMenu(user);
                 break;
             case 2:
             {
                 vector<string> books_list = LibraryService::list_book_names();
+                vector<int> book_ids = LibraryService::list_books();
                 app_ui->showBooks(books_list);
 
+                noBooks(books_list.size());
                 if (books_list.empty()) {
-                    cout << "No books available in the library.\n";
-                    app_ui->askReturnToMainMenu();
                     loadMainMenu(user);
                     break;
                 }
                 
                 int bookChoice = app_ui->askBookChoose(books_list.size());
-                string bookName = books_list[bookChoice-1];
-                const Book& book = LibraryService::get_book(bookName);
+                int book_id = book_ids[bookChoice-1];
+                string book_name = books_list[bookChoice-1];
 
-                auto sessions_list =  SessionService::list_sessions_for(*user, &book);
+                auto sessions_list = SessionService::list_sessions_for(user->get_username(), book_id);
                 
-                int sessionID = app_ui->AskBookSessions(bookName, sessions_list);
+                int sessionID = app_ui->AskBookSessions(book_name, sessions_list);
 
                 if (sessionID == -1){
-                    Session &new_session = SessionService::add_session(*user, book, 0);
-
-                    int newPage = LibraryService::openBook(*new_session.get_book(), new_session.get_page());
-                    new_session.set_page(newPage);
-                }else{
-                    Session &book_session = SessionService::get_session(sessionID);
-                    int newPage = LibraryService::openBook(*book_session.get_book(), book_session.get_page());
-                    
-                    book_session.set_page(newPage);
+                    sessionID = SessionService::add_session(user->get_username(), book_id, 0);
                 }
+                int newPage = LibraryService::openBook(book_id, SessionService::get_page_from_session(sessionID));
+                SessionService::update_session_page(sessionID, newPage);
+
                 loadMainMenu(user);
                 break;
             }
             case 3:
             {
-                auto sessions_list =  SessionService::list_sessions_for(*user);
-                int sessionID = app_ui->askUserSessions(sessions_list);
-
-                if (sessionID != -1){
-                    Session &book_session = SessionService::get_session(sessionID);
-                    int newPage = LibraryService::openBook(*book_session.get_book(), book_session.get_page());
-                    book_session.set_page(newPage);
+                auto sessions_list = SessionService::list_sessions_for(user->get_username());
+                
+                noBooks(sessions_list.size());
+                if (sessions_list.empty()) {
+                    loadMainMenu(user);
+                    break;
                 }
+
+                int sessionID = app_ui->askUserSessions(sessions_list);
+                int book_id = SessionService::get_book_id_from_session(sessionID);
+
+                if (sessionID == -1){
+                    sessionID = SessionService::add_session(user->get_username(), book_id, 0);
+                }
+                int newPage = LibraryService::openBook(book_id, SessionService::get_page_from_session(sessionID));
+                SessionService::update_session_page(sessionID, newPage);
+
                 loadMainMenu(user);
                 break;
             }
@@ -419,7 +430,7 @@ private:
     static void main_menu_admin(int current_choice, User* user){
          switch (current_choice){
             case 1:
-                app_ui->displayProfile(user->get_username(), user->isAdmin(), SessionService::list_sessions_for(*user).size());
+                app_ui->displayProfile(user->get_username(), user->isAdmin(), SessionService::list_sessions_for(user->get_username()).size());
                 loadMainMenu(user);
                 break;
             case 2:
@@ -450,12 +461,22 @@ private:
                     case 2:
                     {
                         vector<string> books_list = LibraryService::list_book_names();
+                        vector<int> book_ids = LibraryService::list_books();
+
+                        noBooks(books_list.size());
+                        if (books_list.empty()) {
+                            loadMainMenu(user);
+                            break;
+                        }
+
                         app_ui->showBooks(books_list);
 
                         int bookChoice = app_ui->askBookChoose(books_list.size());
-                        const Book& book = LibraryService::get_book(books_list[bookChoice-1]);
-                        SessionService::remove_sessions_for_book(book);
-                        bool res = LibraryService::remove_book(book);
+                        int book_id = book_ids[bookChoice-1];
+                        string book_name = books_list[bookChoice-1];
+
+                        SessionService::remove_sessions_for_book(book_id);
+                        bool res = LibraryService::remove_book(book_id);
 
                         if (!res) {
                             cout << "Error removing book.\n";
@@ -497,11 +518,17 @@ private:
         }else
             main_menu_non_admin(current_choice, user);
     }
+    static void noBooks(int size){
+        if (size == 0){
+            cout << "No books available in the library.\n";
+            app_ui->askReturnToMainMenu();
+        }
+    }
 public:
     static void setUI(UI* ui) {
         app_ui = ui;
     }
-    static void run() {
+    static void run(){
         app_ui->showWelcome();
         User* user = loginUser();
 
