@@ -132,10 +132,10 @@ public:
         getline(cin, author);
         cout << "Enter number of pages: ";
         cin >> num_pages;
+        cin.ignore();
     }
     void askPageContent(int page_num, string &content){
         cout << "Enter content for page " << page_num << ": ";
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         getline(cin, content);
     }
 };
