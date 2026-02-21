@@ -402,12 +402,15 @@ private:
                 }
 
                 int sessionID = app_ui->askUserSessions(sessions_list);
-                int book_id = SessionService::get_book_id_from_session(sessionID);
 
                 if (sessionID == -1){
-                    sessionID = SessionService::add_session(user->get_username(), book_id, 0);
+                    loadMainMenu(user);
+                    break;
                 }
-                int newPage = LibraryService::openBook(book_id, SessionService::get_page_from_session(sessionID));
+                int book_id = SessionService::get_book_id_from_session(sessionID);
+                int page = SessionService::get_page_from_session(sessionID);
+
+                int newPage = LibraryService::openBook(book_id, page);
                 SessionService::update_session_page(sessionID, newPage);
 
                 loadMainMenu(user);
